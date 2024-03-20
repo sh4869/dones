@@ -1,10 +1,18 @@
 import { useState } from "react";
-import "./App.css";
 import dayjs from "dayjs";
 
 type Done = {
   key: string;
   dones: dayjs.Dayjs[];
+};
+
+const Dones = ({ done }: { done: Done }) => {
+  return (
+    <div>
+      <h2 className="inline-block text-2xl mr-4">{done.key}</h2>
+      {new Array(7).fill(0)}
+    </div>
+  );
 };
 
 const App = () => {
