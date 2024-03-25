@@ -30,9 +30,9 @@ const Dones = ({
   const dates = days.map((v, i) => {
     const has = done.dones.filter((z) => z.isSame(v, "day"));
     if (has.length > 0) {
-      return <span key={i}>{" * "}</span>;
+      return <span key={i}>{"✅️"}</span>;
     } else {
-      return <span key={i}>{" _ "}</span>;
+      return <span key={i}>{""}</span>;
     }
   });
 
@@ -46,14 +46,24 @@ const Dones = ({
     });
   };
 
+  const addDateEnabled =
+    done.dones.filter((z) => z.isSame(dayjs(), "day")).length == 0;
+
+  const buttonColor = addDateEnabled
+    ? "bg-blue-500 hover:bg-blue-700"
+    : "bg-gray-500";
+
   return (
-    <div>
-      <h2 className="inline-block text-xl mr-4">{done.key}</h2>
-      <div className="inline-block">{dates}</div>
-      <div className="inline-block">
+    <div className="flex flex-row">
+      <h2 className="inline-block text-xl mr-4 basis-1/4">{done.key}</h2>
+      <div className="inline-block basis-1/2 flex flex-row justify-between">
+        {dates}
+      </div>
+      <div className="inline-block basis-1/4">
         <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-2 mx-2 rounded"
+          className={`${buttonColor} text-white font-bold px-2 mx-2 rounded`}
           onClick={addDate}
+          disabled={!addDateEnabled}
         >
           やった
         </button>
@@ -75,29 +85,52 @@ const App = () => {
   };
 
   const addTask = () => {
-    setTasks([...tasks, { key: text, dones: [] }]);
-    setText("");
+    if (text != "") {
+      setTasks([...tasks, { key: text, dones: [] }]);
+      setText("");
+    }
   };
 
   return (
     <>
-      <div>
-        {tasks.map((v, i) => {
-          return (
-            <div key={i} className="">
-              <Dones done={v} onChange={(v) => onChange(v, i)} />
+      <div className="container">
+        <div className="flex flex-row" id="header">
+          <p className="basis-1/4">Name</p>
+          <p className="basis-1/2">
+            <div className="flex flex-row  justify-between">
+              {new Array(7)
+                .fill(0)
+                .map((_, i) => dayjs().add(-i, "day"))
+                .map((v) => (
+                  <span>{v.format("MM/DD")}</span>
+                ))}
             </div>
-          );
-        })}
-      </div>
-      <div>
-        <input value={text} onChange={(e) => setText(e.target.value)} />
-        <button
-          className="bg-green-500 hover:bg-blue-700 text-white font-bold px-2 mx-2 rounded"
-          onClick={addTask}
-        >
-          +
-        </button>
+          </p>
+          <p className="basis-1/4 text-center">操作</p>
+        </div>
+
+        <hr></hr>
+        <div>
+          {tasks.map((v, i) => {
+            return (
+              <div key={i} className="">
+                <Dones done={v} onChange={(v) => onChange(v, i)} />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-row">
+          <div className="basis-1/4">
+            <input value={text} onChange={(e) => setText(e.target.value)} />
+            <button
+              className="bg-green-500 hover:bg-blue-700 text-white font-bold px-2 mx-2 rounded"
+              onClick={addTask}
+            >
+              +
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );
