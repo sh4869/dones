@@ -91,6 +91,9 @@ const App = () => {
     }
   };
 
+  const addButtonColor =
+    text !== "" ? "bg-green-500 hover:bg-blue-700" : "bg-gray-500";
+
   return (
     <>
       <div className="container">
@@ -124,7 +127,7 @@ const App = () => {
           <div className="basis-1/4">
             <input value={text} onChange={(e) => setText(e.target.value)} />
             <button
-              className="bg-green-500 hover:bg-blue-700 text-white font-bold px-2 mx-2 rounded"
+              className={`${addButtonColor} text-white font-bold px-2 mx-2 rounded`}
               onClick={addTask}
             >
               +
