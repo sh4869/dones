@@ -1,12 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import { SignIn } from "./SignIn";
+import { db } from "./firebase";
 import { useCurrentUser } from "./hooks";
+import {
+  DocumentData,
+  collection,
+  doc,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
 
 type Done = {
   key: string;
   dones: dayjs.Dayjs[];
   routines?: Routine;
+};
+
+const DoneToCollection = (d: Done) => {
+  return {
+    ...d,
+    dones: d.dones?.map((v) => v.toJSON()) ?? [],
+  };
+};
+
+const CollectionToDone = (d: DocumentData): Done => {
+  return {
+    key: d["key"],
+    dones: (d["dones"] as string[]).map((v) => dayjs(v)),
+  };
 };
 
 type Routine = DailyRoutine | WeekDayRoutine;
@@ -102,6 +124,28 @@ const App = () => {
     return <SignIn />;
   }
 
+  const save = async () => {
+    try {
+      const c = collection(db, "users", user.uid, "tasks");
+      const batch = writeBatch(db);
+      tasks.forEach((v) => batch.set(doc(c, v.key), DoneToCollection(v)));
+      await batch.commit();
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
+
+  const load = async () => {
+    try {
+      const c = collection(db, "users", user.uid, "tasks");
+      const docs = await getDocs(c);
+      console.log(docs.docs.map((v) => v.data()));
+      setTasks(docs.docs.map((v) => CollectionToDone(v.data())));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <>
       <div className="container">
@@ -131,7 +175,7 @@ const App = () => {
           })}
         </div>
 
-        <div className="flex flex-row">
+        <div className="flex flex-row justify-between">
           <div className="basis-1/4">
             <input value={text} onChange={(e) => setText(e.target.value)} />
             <button
@@ -139,6 +183,23 @@ const App = () => {
               onClick={addTask}
             >
               +
+            </button>
+          </div>
+          <div className="basis-1/2"></div>
+          <div className="basis-1/8">
+            <button
+              className="bg-green-500 text-white font-bold px-2 mx-2 rounded"
+              onClick={save}
+            >
+              save
+            </button>
+          </div>
+          <div className="basis-1/8">
+            <button
+              className="bg-green-500 text-white font-bold px-2 mx-2 rounded"
+              onClick={load}
+            >
+              load
             </button>
           </div>
         </div>
