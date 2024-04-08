@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import { SignIn } from "./SignIn";
+import { useCurrentUser } from "./hooks";
 
 type Done = {
   key: string;
@@ -73,6 +75,8 @@ const Dones = ({
 };
 
 const App = () => {
+  const user = useCurrentUser();
+
   const [tasks, setTasks] = useState<Done[]>([
     { key: "家の掃除", dones: [dayjs().add(-1, "day")] },
     { key: "洗面の流し掃除", dones: [] },
@@ -93,6 +97,10 @@ const App = () => {
 
   const addButtonColor =
     text !== "" ? "bg-green-500 hover:bg-blue-700" : "bg-gray-500";
+
+  if (user == null) {
+    return <SignIn />;
+  }
 
   return (
     <>
