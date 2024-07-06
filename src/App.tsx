@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { SignIn } from "./SignIn";
 import { db } from "./firebase";
@@ -11,25 +11,34 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
-type Done = {
-  key: string;
-  dones: dayjs.Dayjs[];
-  routines?: Routine;
-};
+class Task {
+  public key: string;
+  public dones: dayjs.Dayjs[] = [];
+  public routine?: Routine;
 
-const DoneToCollection = (d: Done) => {
-  return {
-    ...d,
-    dones: d.dones?.map((v) => v.toJSON()) ?? [],
-  };
-};
+  constructor(key: string, dones: dayjs.Dayjs[]) {
+    this.key = key;
+    this.dones = dones;
+  }
 
-const CollectionToDone = (d: DocumentData): Done => {
-  return {
-    key: d["key"],
-    dones: (d["dones"] as string[]).map((v) => dayjs(v)),
-  };
-};
+  toJSON() {
+    return {
+      key: this.key,
+      dones: this.dones?.map((v) => v.toJSON()) ?? [],
+    };
+  }
+
+  addDone(day: dayjs.Dayjs) {
+    this.dones.push(day);
+  }
+
+  static fromJSON(d: DocumentData): Task {
+    return new Task(
+      d["key"],
+      ((d["dones"] as string[]) || []).map((v) => dayjs(v))
+    );
+  }
+}
 
 type Routine = DailyRoutine | WeekDayRoutine;
 
@@ -47,8 +56,8 @@ const Dones = ({
   done,
   onChange,
 }: {
-  done: Done;
-  onChange: (done: Done) => void;
+  done: Task;
+  onChange: (done: Task) => void;
 }) => {
   const days = new Array(7).fill(0).map((_, i) => dayjs().add(-i, "day"));
   const dates = days.map((v, i) => {
@@ -60,14 +69,9 @@ const Dones = ({
     }
   });
 
-  if (done.routines) {
-  }
-
   const addDate = () => {
-    onChange({
-      ...done,
-      dones: [...done.dones, dayjs()],
-    });
+    done.addDone(dayjs());
+    onChange(done);
   };
 
   const addDateEnabled =
@@ -99,20 +103,27 @@ const Dones = ({
 const App = () => {
   const user = useCurrentUser();
 
-  const [tasks, setTasks] = useState<Done[]>([
-    { key: "家の掃除", dones: [dayjs().add(-1, "day")] },
-    { key: "洗面の流し掃除", dones: [] },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const [text, setText] = useState("");
 
-  const onChange = (done: Done, i: number) => {
+  useEffect(() => {
+    (async () => {
+      if (user) {
+        const c = collection(db, "users", user.uid, "tasks");
+        const docs = await getDocs(c);
+        setTasks(docs.docs.map((v) => Task.fromJSON(v.data())));
+      }
+    })();
+  }, [user]);
+
+  const onChange = (done: Task, i: number) => {
     setTasks([...tasks.slice(0, i), done, ...tasks.slice(i + 1)]);
   };
 
   const addTask = () => {
     if (text != "") {
-      setTasks([...tasks, { key: text, dones: [] }]);
+      setTasks([...tasks, new Task(text, [])]);
       setText("");
     }
   };
@@ -128,7 +139,7 @@ const App = () => {
     try {
       const c = collection(db, "users", user.uid, "tasks");
       const batch = writeBatch(db);
-      tasks.forEach((v) => batch.set(doc(c, v.key), DoneToCollection(v)));
+      tasks.forEach((v) => batch.set(doc(c, v.key), v.toJSON()));
       await batch.commit();
     } catch (e) {
       console.error("Error adding document: ", e);
@@ -139,8 +150,7 @@ const App = () => {
     try {
       const c = collection(db, "users", user.uid, "tasks");
       const docs = await getDocs(c);
-      console.log(docs.docs.map((v) => v.data()));
-      setTasks(docs.docs.map((v) => CollectionToDone(v.data())));
+      setTasks(docs.docs.map((v) => Task.fromJSON(v.data())));
     } catch (e) {
       console.error(e);
     }
