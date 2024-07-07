@@ -161,16 +161,16 @@ const App = () => {
       <div className="container">
         <div className="flex flex-row" id="header">
           <p className="basis-1/4">Name</p>
-          <p className="basis-1/2">
+          <div className="basis-1/2">
             <div className="flex flex-row  justify-between">
               {new Array(7)
                 .fill(0)
                 .map((_, i) => dayjs().add(-i, "day"))
                 .map((v) => (
-                  <span>{v.format("MM/DD")}</span>
+                  <span key={v.toString()}>{v.format("MM/DD")}</span>
                 ))}
             </div>
-          </p>
+          </div>
           <p className="basis-1/4 text-center">操作</p>
         </div>
 
