@@ -6,6 +6,7 @@ import { useCurrentUser } from "./hooks";
 import {
   DocumentData,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   writeBatch,
@@ -55,9 +56,11 @@ type WeekDayRoutine = {
 const Dones = ({
   done,
   onChange,
+  onDelete,
 }: {
   done: Task;
   onChange: (done: Task) => void;
+  onDelete: () => void;
 }) => {
   const days = new Array(7).fill(0).map((_, i) => dayjs().add(-i, "day"));
   const dates = days.map((v, i) => {
@@ -95,6 +98,12 @@ const Dones = ({
         >
           やった
         </button>
+        <button
+          onClick={onDelete}
+          className={`bg-red-600 text-white font-bold px-2 mx-2 rounded`}
+        >
+          削除
+        </button>
       </div>
     </div>
   );
@@ -121,6 +130,11 @@ const App = () => {
     setTasks([...tasks.slice(0, i), done, ...tasks.slice(i + 1)]);
   };
 
+  const onDelete = async (i: number) => {
+    await deleteTask(tasks[i]);
+    setTasks([...tasks.slice(0, i), ...tasks.slice(i + 1)]);
+  };
+
   const addTask = () => {
     if (text != "") {
       setTasks([...tasks, new Task(text, [])]);
@@ -134,6 +148,15 @@ const App = () => {
   if (user == null) {
     return <SignIn />;
   }
+
+  const deleteTask = async (task: Task) => {
+    try {
+      const c = collection(db, "users", user.uid, "tasks");
+      await deleteDoc(doc(c, task.key));
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
 
   const save = async () => {
     try {
@@ -167,7 +190,7 @@ const App = () => {
                 .fill(0)
                 .map((_, i) => dayjs().add(-i, "day"))
                 .map((v) => (
-                  <span key={v.toString()}>{v.format("MM/DD")}</span>
+                  <span key={v.toString()}>{v.format("M/DD")}</span>
                 ))}
             </div>
           </div>
@@ -179,7 +202,11 @@ const App = () => {
           {tasks.map((v, i) => {
             return (
               <div key={i} className="">
-                <Dones done={v} onChange={(v) => onChange(v, i)} />
+                <Dones
+                  done={v}
+                  onChange={(v) => onChange(v, i)}
+                  onDelete={() => onDelete(i)}
+                />
               </div>
             );
           })}
@@ -187,7 +214,11 @@ const App = () => {
 
         <div className="flex flex-row justify-between">
           <div className="basis-1/4">
-            <input value={text} onChange={(e) => setText(e.target.value)} />
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="text-black"
+            />
             <button
               className={`${addButtonColor} text-white font-bold px-2 mx-2 rounded`}
               onClick={addTask}
